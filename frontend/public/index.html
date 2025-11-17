@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaizen 3D Printing - سیستم مدیریت پرینت سه‌بعدی</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .status-online {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .status-offline {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50" x-data="app()" x-init="init()">
+
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <i class="fas fa-cube text-4xl"></i>
+                    <div>
+                        <h1 class="text-3xl font-bold">Kaizen 3D Printing</h1>
+                        <p class="text-purple-200">سیستم مدیریت سفارشات پرینت سه‌بعدی</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <div :class="apiStatus === 'online' ? 'status-online' : 'status-offline'"
+                         class="px-4 py-2 rounded-full text-sm font-semibold flex items-center space-x-2 space-x-reverse">
+                        <span :class="apiStatus === 'online' ? 'pulse-animation' : ''" class="w-2 h-2 bg-white rounded-full"></span>
+                        <span x-text="apiStatus === 'online' ? 'آنلاین' : 'آفلاین'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- API Status Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">وضعیت API</p>
+                        <p class="text-2xl font-bold text-gray-800" x-text="apiStatus === 'online' ? 'فعال' : 'غیرفعال'"></p>
+                    </div>
+                    <div class="bg-green-100 rounded-full p-3">
+                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Version Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">نسخه API</p>
+                        <p class="text-2xl font-bold text-gray-800" x-text="apiVersion"></p>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <i class="fas fa-code-branch text-blue-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Environment Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">محیط</p>
+                        <p class="text-2xl font-bold text-gray-800" x-text="environment"></p>
+                    </div>
+                    <div class="bg-purple-100 rounded-full p-3">
+                        <i class="fas fa-server text-purple-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Endpoints Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Endpoints</p>
+                        <p class="text-2xl font-bold text-gray-800">3</p>
+                    </div>
+                    <div class="bg-yellow-100 rounded-full p-3">
+                        <i class="fas fa-plug text-yellow-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Tester Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-6 flex items-center">
+                <i class="fas fa-flask ml-3"></i>
+                تست API Endpoints
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Health Check Endpoint -->
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">GET</span>
+                        <button @click="testEndpoint('health')"
+                                :disabled="loading === 'health'"
+                                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm disabled:opacity-50">
+                            <span x-show="loading !== 'health'">تست</span>
+                            <span x-show="loading === 'health'">
+                                <i class="fas fa-spinner fa-spin"></i> در حال تست...
+                            </span>
+                        </button>
+                    </div>
+                    <p class="text-sm font-mono text-gray-700">/api/health</p>
+                    <p class="text-xs text-gray-500 mt-2">بررسی وضعیت سلامت API</p>
+                </div>
+
+                <!-- API Info Endpoint -->
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">GET</span>
+                        <button @click="testEndpoint('info')"
+                                :disabled="loading === 'info'"
+                                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm disabled:opacity-50">
+                            <span x-show="loading !== 'info'">تست</span>
+                            <span x-show="loading === 'info'">
+                                <i class="fas fa-spinner fa-spin"></i> در حال تست...
+                            </span>
+                        </button>
+                    </div>
+                    <p class="text-sm font-mono text-gray-700">/api</p>
+                    <p class="text-xs text-gray-500 mt-2">اطلاعات API و endpoints</p>
+                </div>
+
+                <!-- 404 Test Endpoint -->
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">GET</span>
+                        <button @click="testEndpoint('404')"
+                                :disabled="loading === '404'"
+                                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm disabled:opacity-50">
+                            <span x-show="loading !== '404'">تست</span>
+                            <span x-show="loading !== '404'">
+                                <i class="fas fa-spinner fa-spin"></i> در حال تست...
+                            </span>
+                        </button>
+                    </div>
+                    <p class="text-sm font-mono text-gray-700">/api/not-found</p>
+                    <p class="text-xs text-gray-500 mt-2">تست 404 handler</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response Display -->
+        <div x-show="response" class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fas fa-terminal ml-3"></i>
+                    پاسخ سرور
+                </h3>
+                <span :class="responseStatus === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                      class="px-3 py-1 rounded-full text-sm font-semibold"
+                      x-text="responseStatus === 'success' ? 'موفق' : 'خطا'">
+                </span>
+            </div>
+            <div class="code-block" x-html="formattedResponse"></div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                    <i class="fas fa-upload text-blue-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-2">آپلود فایل</h3>
+                <p class="text-gray-600 text-sm">آپلود فایل‌های STL، OBJ، GCODE با validation کامل</p>
+                <div class="mt-4">
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">در حال توسعه</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                    <i class="fas fa-shopping-cart text-green-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-2">مدیریت سفارشات</h3>
+                <p class="text-gray-600 text-sm">ثبت، پیگیری و مدیریت سفارشات پرینت سه‌بعدی</p>
+                <div class="mt-4">
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">در حال توسعه</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                <div class="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                    <i class="fab fa-telegram text-purple-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-2">اتصال به تلگرام</h3>
+                <p class="text-gray-600 text-sm">یکپارچگی با بات تلگرام و ارسال نوتیفیکیشن</p>
+                <div class="mt-4">
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">در حال توسعه</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-md p-8 text-white">
+            <h3 class="text-2xl font-bold mb-6 text-center">مستندات و منابع</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <a href="https://github.com/mngnazari/kaizen_web" target="_blank"
+                   class="bg-white/10 backdrop-blur rounded-lg p-4 hover:bg-white/20 transition text-center">
+                    <i class="fab fa-github text-3xl mb-2"></i>
+                    <p class="font-semibold">GitHub</p>
+                </a>
+                <a href="../ARCHITECTURE.md"
+                   class="bg-white/10 backdrop-blur rounded-lg p-4 hover:bg-white/20 transition text-center">
+                    <i class="fas fa-book text-3xl mb-2"></i>
+                    <p class="font-semibold">معماری</p>
+                </a>
+                <a href="../docs/API.md"
+                   class="bg-white/10 backdrop-blur rounded-lg p-4 hover:bg-white/20 transition text-center">
+                    <i class="fas fa-file-code text-3xl mb-2"></i>
+                    <p class="font-semibold">مستندات API</p>
+                </a>
+                <a href="../QUICKSTART.md"
+                   class="bg-white/10 backdrop-blur rounded-lg p-4 hover:bg-white/20 transition text-center">
+                    <i class="fas fa-rocket text-3xl mb-2"></i>
+                    <p class="font-semibold">شروع سریع</p>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Kaizen 3D Printing. All rights reserved.</p>
+            <p class="text-gray-400 text-sm mt-2">ساخته شده با ❤️ برای کسب‌وکار پرینت سه‌بعدی</p>
+        </div>
+    </footer>
+
+    <script>
+        function app() {
+            return {
+                apiUrl: 'http://localhost:8000/api',
+                apiStatus: 'checking',
+                apiVersion: '-',
+                environment: '-',
+                response: null,
+                responseStatus: 'success',
+                formattedResponse: '',
+                loading: null,
+
+                async init() {
+                    await this.checkApiStatus();
+                },
+
+                async checkApiStatus() {
+                    try {
+                        const res = await fetch(`${this.apiUrl}/health`);
+                        const data = await res.json();
+
+                        if (data.success) {
+                            this.apiStatus = 'online';
+                            this.apiVersion = data.data.version || '1.0.0';
+                            this.environment = data.data.environment || 'development';
+                        } else {
+                            this.apiStatus = 'offline';
+                        }
+                    } catch (error) {
+                        this.apiStatus = 'offline';
+                        console.error('API Check Error:', error);
+                    }
+                },
+
+                async testEndpoint(type) {
+                    this.loading = type;
+                    this.response = null;
+
+                    let url = this.apiUrl;
+
+                    switch(type) {
+                        case 'health':
+                            url += '/health';
+                            break;
+                        case 'info':
+                            url += '';
+                            break;
+                        case '404':
+                            url += '/not-found';
+                            break;
+                    }
+
+                    try {
+                        const res = await fetch(url);
+                        const data = await res.json();
+
+                        this.response = data;
+                        this.responseStatus = data.success ? 'success' : 'error';
+                        this.formattedResponse = this.syntaxHighlight(JSON.stringify(data, null, 2));
+                    } catch (error) {
+                        this.response = { error: error.message };
+                        this.responseStatus = 'error';
+                        this.formattedResponse = this.syntaxHighlight(JSON.stringify({
+                            error: error.message,
+                            message: 'خطا در اتصال به سرور. مطمئن شوید سرور backend در حال اجرا است.'
+                        }, null, 2));
+                    } finally {
+                        this.loading = null;
+                    }
+                },
+
+                syntaxHighlight(json) {
+                    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                        let cls = 'text-yellow-400';
+                        if (/^"/.test(match)) {
+                            if (/:$/.test(match)) {
+                                cls = 'text-blue-400';
+                            } else {
+                                cls = 'text-green-400';
+                            }
+                        } else if (/true|false/.test(match)) {
+                            cls = 'text-purple-400';
+                        } else if (/null/.test(match)) {
+                            cls = 'text-red-400';
+                        }
+                        return '<span class="' + cls + '">' + match + '</span>';
+                    });
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
